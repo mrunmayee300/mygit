@@ -10,7 +10,7 @@ Inspired by [Build Your Own X](https://github.com/codecrafters-io/build-your-own
 |-------|---------|--------|
 | 1 | `init` | ✅ Complete |
 | 2 | Blob objects (`hash-object`, `cat-file`) | ✅ Complete |
-| 3 | Tree objects (`write-tree`, `ls-tree`) | 🔜 Planned |
+| 3 | Tree objects (`write-tree`, `ls-tree`) | ✅ Complete |
 | 4 | Commits | 🔜 Planned |
 | 5 | Log | 🔜 Planned |
 | 6 | Branches | 🔜 Planned |
@@ -76,6 +76,10 @@ echo "hello world" > file.txt
 
 # Read object content back
 ./bin/mygit cat-file 3b18e512dba79e4c8300dd08aeb37f8e728b8dad
+
+# Build a tree from the working directory
+./bin/mygit write-tree
+./bin/mygit ls-tree <tree-hash>
 ```
 
 ## Development

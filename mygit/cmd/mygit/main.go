@@ -38,6 +38,7 @@ func main() {
 func init() {
 	rootCmd.AddCommand(initCmd)
 	initObjectCommands()
+	initTreeCommands()
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
