@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mrunmayee/mygit/internal/objects"
 	"github.com/mrunmayee/mygit/internal/repository"
 	"github.com/mrunmayee/mygit/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -39,6 +40,24 @@ func TestNew_FromRepository(t *testing.T) {
 	assert.True(t, store.Exists(objectID))
 }
 
+func TestObjectPath(t *testing.T) {
+	store, _ := newTestStore(t)
+	path := store.ObjectPath("3b18e512dba79e4c8300dd08aeb37f8e728b8dad")
+	assert.Contains(t, path, string(os.PathSeparator)+"3b"+string(os.PathSeparator))
+	assert.Contains(t, path, "18e512dba79e4c8300dd08aeb37f8e728b8dad")
+}
+
+func TestWrite_GenericObject(t *testing.T) {
+	store, _ := newTestStore(t)
+
+	objectID, err := store.Write(objects.NewBlob([]byte("generic write")))
+	require.NoError(t, err)
+
+	obj, err := store.Read(objectID)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("generic write"), obj.Content)
+}
+
 func TestRead_CorruptObject(t *testing.T) {
 	store, tmp := newTestStore(t)
 
@@ -47,6 +66,33 @@ func TestRead_CorruptObject(t *testing.T) {
 	path := filepath.Join(tmp, ".git", "objects", "aa", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 	require.NoError(t, os.WriteFile(path, []byte("not zlib"), 0o644))
+
+	_, err := store.Read(fakeID)
+	assert.Error(t, err)
+}
+
+func TestRead_ObjectPathIsDirectory(t *testing.T) {
+	store, tmp := newTestStore(t)
+
+	fakeID := "cccccccccccccccccccccccccccccccccccccccc"
+	path := filepath.Join(tmp, ".git", "objects", "cc", "cccccccccccccccccccccccccccccccccccccccc")
+	require.NoError(t, os.MkdirAll(path, 0o755))
+
+	_, err := store.Read(fakeID)
+	assert.Error(t, err)
+}
+
+func TestRead_InvalidSerializedObject(t *testing.T) {
+	store, tmp := newTestStore(t)
+
+	fakeID := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	path := filepath.Join(tmp, ".git", "objects", "bb", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+
+	// Store zlib-compressed bytes that are not a valid Git object.
+	require.NoError(t, os.WriteFile(path, []byte{
+		0x78, 0x01, 0x01, 0x00, 0x00, 0xfe, 0xff, 0x00,
+	}, 0o644))
 
 	_, err := store.Read(fakeID)
 	assert.Error(t, err)
