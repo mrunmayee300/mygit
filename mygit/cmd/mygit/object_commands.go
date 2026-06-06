@@ -74,6 +74,8 @@ func runCatFile(cmd *cobra.Command, args []string) error {
 	switch obj.Type {
 	case objects.TypeBlob:
 		os.Stdout.Write(obj.Content)
+	case objects.TypeCommit:
+		os.Stdout.Write(obj.Content)
 	default:
 		return fmt.Errorf("%w: %s", objects.ErrUnsupportedType, obj.Type)
 	}

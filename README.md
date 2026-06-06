@@ -11,7 +11,7 @@ Inspired by [Build Your Own X](https://github.com/codecrafters-io/build-your-own
 | 1 | `init` | ✅ Complete |
 | 2 | Blob objects (`hash-object`, `cat-file`) | ✅ Complete |
 | 3 | Tree objects (`write-tree`, `ls-tree`) | ✅ Complete |
-| 4 | Commits | 🔜 Planned |
+| 4 | Commits | ✅ Complete |
 | 5 | Log | 🔜 Planned |
 | 6 | Branches | 🔜 Planned |
 | 7 | Status | 🔜 Planned |
@@ -80,6 +80,9 @@ echo "hello world" > file.txt
 # Build a tree from the working directory
 ./bin/mygit write-tree
 ./bin/mygit ls-tree <tree-hash>
+
+# Create a commit (snapshots working tree, updates main branch)
+./bin/mygit commit -m "Initial commit"
 ```
 
 ## Development
