@@ -12,7 +12,7 @@ Inspired by [Build Your Own X](https://github.com/codecrafters-io/build-your-own
 | 2 | Blob objects (`hash-object`, `cat-file`) | ✅ Complete |
 | 3 | Tree objects (`write-tree`, `ls-tree`) | ✅ Complete |
 | 4 | Commits | ✅ Complete |
-| 5 | Log | 🔜 Planned |
+| 5 | Log | ✅ Complete |
 | 6 | Branches | 🔜 Planned |
 | 7 | Status | 🔜 Planned |
 | 8 | Staging (`add`, index) | 🔜 Planned |
@@ -83,6 +83,9 @@ echo "hello world" > file.txt
 
 # Create a commit (snapshots working tree, updates main branch)
 ./bin/mygit commit -m "Initial commit"
+
+# View commit history
+./bin/mygit log
 ```
 
 ## Development

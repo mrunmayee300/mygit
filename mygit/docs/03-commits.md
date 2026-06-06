@@ -99,6 +99,33 @@ HEAD → refs/heads/main → <commit-sha>
 
 This is when `refs/heads/main` is created.
 
+## History Traversal (`log`)
+
+`mygit log` walks the commit DAG from HEAD, following **first-parent** links:
+
+```text
+HEAD → C3 → C2 → C1 → (stop: no parent)
+```
+
+Output format:
+
+```text
+commit <full-hash>
+Author: Name <email>
+Date:   Sat Jun 6 12:00:00 2026 +0000
+
+commit message
+```
+
+Algorithm:
+
+1. Resolve HEAD → starting commit hash
+2. Load commit object from object store
+3. Append to output; follow `parents[0]`
+4. Repeat until no parents (or `-n` limit reached)
+
+Merge commits with multiple parents are covered in Phase 10; until then, only the first parent is followed.
+
 ## Design Decisions
 
 | Decision | Rationale |
