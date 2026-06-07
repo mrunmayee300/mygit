@@ -47,8 +47,13 @@ func UpdateBranch(repo *repository.Repository, branch, objectID string) error {
 	return Write(repo, branchRef(branch), objectID)
 }
 
-func branchRef(branch string) string {
+// BranchRef returns the full ref path for a branch name.
+func BranchRef(branch string) string {
 	return "refs/heads/" + branch
+}
+
+func branchRef(branch string) string {
+	return BranchRef(branch)
 }
 
 func branchName(ref string) string {

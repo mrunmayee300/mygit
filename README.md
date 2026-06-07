@@ -13,7 +13,7 @@ Inspired by [Build Your Own X](https://github.com/codecrafters-io/build-your-own
 | 3 | Tree objects (`write-tree`, `ls-tree`) | ✅ Complete |
 | 4 | Commits | ✅ Complete |
 | 5 | Log | ✅ Complete |
-| 6 | Branches | 🔜 Planned |
+| 6 | Branches | ✅ Complete |
 | 7 | Status | 🔜 Planned |
 | 8 | Staging (`add`, index) | 🔜 Planned |
 | 9 | Diff | 🔜 Planned |
@@ -86,6 +86,10 @@ echo "hello world" > file.txt
 
 # View commit history
 ./bin/mygit log
+
+# Branches
+./bin/mygit branch feature
+./bin/mygit checkout feature
 ```
 
 ## Development
