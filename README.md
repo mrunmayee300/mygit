@@ -14,7 +14,7 @@ Inspired by [Build Your Own X](https://github.com/codecrafters-io/build-your-own
 | 4 | Commits | ✅ Complete |
 | 5 | Log | ✅ Complete |
 | 6 | Branches | ✅ Complete |
-| 7 | Status | 🔜 Planned |
+| 7 | Status | ✅ Complete |
 | 8 | Staging (`add`, index) | 🔜 Planned |
 | 9 | Diff | 🔜 Planned |
 | 10 | Merge | 🔜 Planned |
@@ -90,6 +90,9 @@ echo "hello world" > file.txt
 # Branches
 ./bin/mygit branch feature
 ./bin/mygit checkout feature
+
+# See what changed
+./bin/mygit status
 ```
 
 ## Development
