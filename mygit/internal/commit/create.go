@@ -5,11 +5,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/mrunmayee/mygit/internal/index"
 	"github.com/mrunmayee/mygit/internal/objects"
 	"github.com/mrunmayee/mygit/internal/refs"
 	"github.com/mrunmayee/mygit/internal/repository"
 	"github.com/mrunmayee/mygit/internal/storage"
-	"github.com/mrunmayee/mygit/internal/tree"
 )
 
 // CreateOptions configures commit creation.
@@ -37,7 +37,7 @@ func Create(repo *repository.Repository, opts CreateOptions) (string, error) {
 		return "", fmt.Errorf("HEAD is not on a branch")
 	}
 
-	treeHash, err := tree.WriteTree(repo)
+	treeHash, err := index.BuildCommitTree(repo)
 	if err != nil {
 		return "", fmt.Errorf("write tree: %w", err)
 	}
@@ -76,6 +76,11 @@ func Create(repo *repository.Repository, opts CreateOptions) (string, error) {
 
 	if err := refs.UpdateBranch(repo, head.Branch, objectID); err != nil {
 		return "", fmt.Errorf("update branch: %w", err)
+	}
+
+	// Reset index to match the new commit (clear staging area).
+	if err := index.New().Save(repo); err != nil {
+		return "", fmt.Errorf("reset index: %w", err)
 	}
 
 	return objectID, nil

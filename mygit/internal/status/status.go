@@ -6,24 +6,31 @@ import (
 	"strings"
 
 	"github.com/mrunmayee/mygit/internal/commit"
+	"github.com/mrunmayee/mygit/internal/index"
 	"github.com/mrunmayee/mygit/internal/refs"
 	"github.com/mrunmayee/mygit/internal/repository"
 	"github.com/mrunmayee/mygit/internal/storage"
 	"github.com/mrunmayee/mygit/internal/tree"
 )
 
-// Report is the result of comparing HEAD, index (future), and working tree.
-type Report struct {
-	Branch    string
-	Detached  bool
-	NoCommits bool
-	Staged    []string // populated in Phase 8 (index)
-	Modified  []string
-	Deleted   []string
-	Untracked []string
+// StagedChange describes a staged change type for display.
+type StagedChange struct {
+	Path   string
+	Status string // "new file", "modified", "deleted"
 }
 
-// Compute compares the working tree against the HEAD commit snapshot.
+// Report is the result of comparing HEAD, index, and working tree.
+type Report struct {
+	Branch       string
+	Detached     bool
+	NoCommits    bool
+	Staged       []StagedChange
+	Modified     []string
+	Deleted      []string
+	Untracked    []string
+}
+
+// Compute compares HEAD, index, and working tree (three-tree model).
 func Compute(repo *repository.Repository) (*Report, error) {
 	head, err := refs.ReadHEAD(repo)
 	if err != nil {
@@ -40,49 +47,120 @@ func Compute(repo *repository.Repository) (*Report, error) {
 		return nil, err
 	}
 
-	if head.Commit == "" {
+	idx, err := index.Load(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	headMap := make(map[string]string)
+	if head.Commit != "" {
+		store := storage.New(repo)
+		c, err := commit.Load(store, head.Commit)
+		if err != nil {
+			return nil, fmt.Errorf("load HEAD commit: %w", err)
+		}
+		headMap, err = tree.Flatten(store, c.Tree)
+		if err != nil {
+			return nil, fmt.Errorf("flatten HEAD tree: %w", err)
+		}
+	} else {
 		report.NoCommits = true
+	}
+
+	indexMap := idx.PathsToHash()
+	deletions := idx.DeletedPaths()
+
+	// Staged: index vs HEAD
+	allPaths := make(map[string]struct{})
+	for p := range headMap {
+		allPaths[p] = struct{}{}
+	}
+	for p := range indexMap {
+		allPaths[p] = struct{}{}
+	}
+	for p := range deletions {
+		allPaths[p] = struct{}{}
+	}
+
+	for path := range allPaths {
+		_, stagedDelete := deletions[path]
+		idxHash, inIndex := indexMap[path]
+		headHash, inHead := headMap[path]
+
+		switch {
+		case stagedDelete && inHead:
+			report.Staged = append(report.Staged, StagedChange{Path: path, Status: "deleted"})
+		case inIndex && !inHead:
+			report.Staged = append(report.Staged, StagedChange{Path: path, Status: "new file"})
+		case inIndex && inHead && idxHash != headHash:
+			report.Staged = append(report.Staged, StagedChange{Path: path, Status: "modified"})
+		}
+	}
+
+	// Effective index for unstaged comparison
+	effectiveIndex := make(map[string]string)
+	for p, h := range headMap {
+		effectiveIndex[p] = h
+	}
+	for p, h := range indexMap {
+		effectiveIndex[p] = h
+	}
+	for p := range deletions {
+		delete(effectiveIndex, p)
+	}
+
+	if report.NoCommits {
 		for path := range worktree {
-			report.Untracked = append(report.Untracked, path)
+			if _, inIdx := indexMap[path]; !inIdx {
+				report.Untracked = append(report.Untracked, path)
+			}
 		}
 		sort.Strings(report.Untracked)
+		sortStaged(report)
 		return report, nil
 	}
 
-	store := storage.New(repo)
-	c, err := commit.Load(store, head.Commit)
-	if err != nil {
-		return nil, fmt.Errorf("load HEAD commit: %w", err)
-	}
-
-	tracked, err := tree.Flatten(store, c.Tree)
-	if err != nil {
-		return nil, fmt.Errorf("flatten HEAD tree: %w", err)
-	}
-
-	for path, headHash := range tracked {
-		workHash, ok := worktree[path]
-		if !ok {
-			report.Deleted = append(report.Deleted, path)
+	// Unstaged: worktree vs effective index
+	checked := make(map[string]struct{})
+	for path, idxHash := range effectiveIndex {
+		checked[path] = struct{}{}
+		workHash, inWork := worktree[path]
+		if !inWork {
+			if _, staged := deletions[path]; !staged {
+				report.Deleted = append(report.Deleted, path)
+			}
 			continue
 		}
-		if workHash != headHash {
+		if workHash != idxHash {
 			report.Modified = append(report.Modified, path)
 		}
 	}
 
-	for path := range worktree {
-		if _, ok := tracked[path]; !ok {
-			report.Untracked = append(report.Untracked, path)
+	for path, workHash := range worktree {
+		if _, ok := checked[path]; ok {
+			continue
 		}
+		if _, inIdx := indexMap[path]; inIdx {
+			if workHash != indexMap[path] {
+				report.Modified = append(report.Modified, path)
+			}
+			continue
+		}
+		report.Untracked = append(report.Untracked, path)
 	}
 
-	sort.Strings(report.Staged)
+	sortStaged(report)
 	sort.Strings(report.Modified)
 	sort.Strings(report.Deleted)
 	sort.Strings(report.Untracked)
 
 	return report, nil
+}
+
+func sortStaged(r *Report) {
+	sort.Slice(r.Staged, func(i, j int) bool {
+		return r.Staged[i].Path < r.Staged[j].Path
+	})
 }
 
 // Format renders a git-style status report.
@@ -93,7 +171,11 @@ func Format(r *Report) string {
 
 	if r.NoCommits {
 		b.WriteString("\nNo commits yet\n")
+		writeStaged(&b, r.Staged)
 		writeUntracked(&b, r.Untracked)
+		if len(r.Staged) == 0 && len(r.Untracked) > 0 {
+			b.WriteString("\nno changes added to commit (use \"mygit add\" to stage changes)\n")
+		}
 		return b.String()
 	}
 
@@ -121,13 +203,13 @@ func writeHeader(b *strings.Builder, r *Report) {
 	}
 }
 
-func writeStaged(b *strings.Builder, staged []string) {
+func writeStaged(b *strings.Builder, staged []StagedChange) {
 	if len(staged) == 0 {
 		return
 	}
 	b.WriteString("\nChanges to be committed:\n")
-	for _, path := range staged {
-		fmt.Fprintf(b, "\tnew file:   %s\n", path)
+	for _, ch := range staged {
+		fmt.Fprintf(b, "\t%s:   %s\n", ch.Status, ch.Path)
 	}
 }
 

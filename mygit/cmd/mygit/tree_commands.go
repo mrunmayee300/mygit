@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/mrunmayee/mygit/internal/index"
 	"github.com/mrunmayee/mygit/internal/repository"
 	"github.com/mrunmayee/mygit/internal/storage"
 	"github.com/mrunmayee/mygit/internal/tree"
@@ -34,7 +35,7 @@ func runWriteTree(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	objectID, err := tree.WriteTree(repo)
+	objectID, err := index.WriteTreeForCommit(repo)
 	if err != nil {
 		return err
 	}

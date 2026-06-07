@@ -15,7 +15,7 @@ Inspired by [Build Your Own X](https://github.com/codecrafters-io/build-your-own
 | 5 | Log | ✅ Complete |
 | 6 | Branches | ✅ Complete |
 | 7 | Status | ✅ Complete |
-| 8 | Staging (`add`, index) | 🔜 Planned |
+| 8 | Staging (`add`, index) | ✅ Complete |
 | 9 | Diff | 🔜 Planned |
 | 10 | Merge | 🔜 Planned |
 | 11 | Clone | 🔜 Planned |
@@ -93,6 +93,10 @@ echo "hello world" > file.txt
 
 # See what changed
 ./bin/mygit status
+
+# Stage files and commit only what you staged
+./bin/mygit add file.txt
+./bin/mygit add .
 ```
 
 ## Development

@@ -43,6 +43,7 @@ func init() {
 	initLogCommands()
 	initBranchCommands()
 	initStatusCommands()
+	initAddCommands()
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
